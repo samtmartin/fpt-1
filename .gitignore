@@ -1,0 +1,5 @@
+.DS_Store
+__pycache__
+checkpoints
+public_company_financials.csv
+work_tracker.txt
