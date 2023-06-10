@@ -96,6 +96,13 @@ class DataLoader():
                 column = torch.exp(column) - torch.abs(config.scaling_adj)
             elif strategy == "log10":
                 column = 10**column - torch.abs(config.scaling_adj)
+            elif strategy == "sqrt->mean":
+                column = column * config.mean
+                column = torch.square(column) - torch.abs(config.scaling_adj)
+            elif strategy == "sqrt->mean->sqrt":
+                column = torch.pow(column, 2)
+                column = column * config.mean
+                column = torch.square(column) - torch.abs(config.scaling_adj)
 
             raw_data[:, i] = column
 
@@ -367,8 +374,10 @@ class DataLoader():
             column_config.mean = mean
             column_config.std = std
             column = (column - mean) / std
-        elif strategy == "log" or strategy == "log10":            
+        elif (strategy == "log" or strategy == "log10" or 
+              strategy == "sqrt->mean" or strategy == "sqrt->mean->sqrt"):
             min = torch.min(column)
+            # Apply shift to entire column, as it contains negative values.
             if min.item() < 1:
                 min -= 1
                 column = column + abs(min)
@@ -380,8 +389,22 @@ class DataLoader():
 
             if strategy == "log":
                 column = torch.log(column)
-            else:
+            elif strategy == "log10":
                 column = torch.log10(column)
+            elif strategy == "sqrt->mean":
+                column = torch.sqrt(column)
+                mean = column.mean()
+                if is_output_column == True:
+                    column_config.mean = mean
+                column = column / mean
+            elif strategy == "sqrt->mean->sqrt":
+                column = torch.sqrt(column)
+                mean = column.mean()
+                if is_output_column == True:
+                    column_config.mean = mean
+                column = column / mean
+                column = torch.pow(column, 1/2)
+
         return column, column_config
     
     def __scale_data(

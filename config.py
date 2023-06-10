@@ -11,7 +11,8 @@ class ColumnConfig:
     Vars:
       -header: name of the data column header (e.g. 'revenue').
       -scaling_strategy: scaling technique to apply to column. Valid values 
-       include: 'mean', 'standardization', 'log', 'log10'.
+       include: 'mean', 'standardization', 'log', 'log10' and sequential
+       'sqrt->mean' and 'sqrt->mean->sqrt'.
       -lag_steps: number of lag steps to apply as input feature. Valid values: 
        0 - block_size. Generally improves model prediction accuracy.
       -include_yoy_prediction: whether or not to include a YoY prediction as 

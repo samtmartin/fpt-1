@@ -11,36 +11,51 @@ def evaluate_model(
     data_loader: DataLoader, 
     calculate_loss: Callable[[Tensor, Tensor], Tensor],
     eval_epochs: int, 
-    batch_size: int) -> dict[str, Tensor]:
+    batch_size: int,
+    iter: int) -> Tensor:
     """
-    Evalutes `model` during training against training and validation splits.
+    Evaluates `model` during training against training and validation splits. 
+    Returns the loss from validation split.
     """
     
     model.eval()
-    losses = {}
 
-    losses["train"] = calculate_mean_loss(
+    train_loss = calculate_mean_loss(
         model, data_loader, calculate_loss, "train", eval_epochs, batch_size)
-    losses["val"] = calculate_mean_loss(
+    val_loss = calculate_mean_loss(
         model, data_loader, calculate_loss, "val", eval_epochs, batch_size)
 
+    model_median_errors, baseline_median_errors = (
+        calculate_median_percent_error(
+        model, data_loader, eval_epochs, run_standalone=False))
+
+    print(f"Epoch #{iter + 1}:")
+    print(f"  Train loss: {train_loss:.6f}")
+    print(f"  Valid loss: {val_loss:.6f}")
+    print(f"  % error (model): {model_median_errors}")
+    print(f"  % error (y-o-y): {baseline_median_errors}")
+
     model.train()
-    return losses
+    return val_loss
 
 @torch.no_grad()
-def evaluate_trained_model(
+def calculate_median_percent_error(
     model: FPT, 
     data_loader: DataLoader,
-    eval_epochs: int) -> None:
+    eval_epochs: int,
+    run_standalone: bool) -> tuple[Tensor, Tensor]:
     """
-    Evalutes trained `model` on test split.
+    Evalutes `model` against test split to determine the percent error. First 
+    output tensor is the model's median percent error and the second is the 
+    baseline prediction strategy's median percent error.
     """
 
-    model.eval()
-    
-    raw_percent_errors = torch.zeros(
+    if run_standalone:
+        model.eval()
+
+    model_percent_errors = torch.zeros(
         eval_epochs, data_loader.get_num_output_features())
-    yoy_percent_errors = torch.zeros(
+    baseline_percent_errors = torch.zeros(
         eval_epochs, data_loader.get_num_output_features())
 
     for k in range(eval_epochs):
@@ -54,34 +69,25 @@ def evaluate_trained_model(
         raw_targets = data_loader.generate_raw_data(targets)
         raw_outputs = data_loader.generate_raw_data(outputs)
         
-        # Populate `raw_percent_errors`.
+        # Populate `model_percent_errors`.
         for i, estimate in enumerate(raw_outputs[T-1]):
             actual = raw_targets[T-1][i]
-            raw_percent_errors[k][i] = calculate_percent_error(
+            model_percent_errors[k][i] = calculate_percent_error(
                 estimate, actual)
             
-        # Populate `yoy_percent_errors` for baseline prediction accuracy.
+        # Populate `baseline_percent_errors`.
         for i, actual in enumerate(raw_targets[T-1]):
             prediction = generate_yoy_prediction(raw_targets, T, i)
-            yoy_percent_errors[k][i] = calculate_percent_error(
+            baseline_percent_errors[k][i] = calculate_percent_error(
                 prediction, actual)
 
-    # Calculate mean and median errors along column dimension and then round.
-    raw_mean_errors = [round(e.item(), 2) for e in 
-                       torch.mean(raw_percent_errors, dim=0)]
-    print(f"Average model percent error: {raw_mean_errors}")
-    yoy_mean_errors = [round(e.item(), 2) for e in 
-                       torch.mean(yoy_percent_errors, dim=0)]
-    print(f"Average Y-o-Y percent error: {yoy_mean_errors}")
-    
-    raw_median_errors = (
+    model_median_errors = (
         [round(e.item(), 2) for e in 
-         torch.median(raw_percent_errors, dim=0).values])
-    print(f"Median model percent error: {raw_median_errors}")
-    yoy_median_errors = (
+         torch.median(model_percent_errors, dim=0).values])
+    baseline_median_errors = (
         [round(e.item(), 2) for e in 
-         torch.median(yoy_percent_errors, dim=0).values])
-    print(f"Median Y-o-Y percent error: {yoy_median_errors}")
+         torch.median(baseline_percent_errors, dim=0).values])
+    return model_median_errors, baseline_median_errors
 
 def calculate_mean_loss(
         model: FPT, 

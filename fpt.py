@@ -165,9 +165,13 @@ class FPT(nn.Module):
             block_size: int, 
             num_heads: int, 
             num_layers: int, 
-            dropout: float):
+            dropout: float,
+            use_static_positional_encoding: bool):
         super().__init__()
 
+        # Whether to use static positional encodings as opposed to learned. 
+        # Static tends to perform better on the smaller dataset.
+        self._use_static_positional_encoding = use_static_positional_encoding
         self._position_embedding_table = nn.Embedding(
             block_size, num_input_features)
         self._blocks = nn.Sequential(*[DecoderBlock(
@@ -191,14 +195,19 @@ class FPT(nn.Module):
             self, 
             inputs: Tensor) -> Tensor:
         B, T, C = inputs.shape
-        
+
         # Augments `inputs` with position-dependent pattern of values (uses 
         # index to encode position of elements in sequence), allowing attention 
         # head and feed-forward layers to incorporate positional information 
         # during transformations.
-        pos_emb = self._position_embedding_table(torch.arange(T)) # (T,C)
-        x = inputs + pos_emb # (B,T,C)
+        if self._use_static_positional_encoding:            
+            pos_emb = torch.sin(torch.arange(T))
+            pos_emb = pos_emb.unsqueeze(1)
+            pos_emb = pos_emb.repeat(1,C)
+        else:
+            pos_emb = self._position_embedding_table(torch.arange(T)) # (T,C)
 
+        x = inputs + pos_emb # (B,T,C)
         x = self._blocks(x) # (B,T,C)
         x = self._ln(x) # (B,T,C)
 

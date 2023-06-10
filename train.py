@@ -1,7 +1,7 @@
 import torch
 
 from config import ColumnConfig, DataConfig
-from evaluate import evaluate_model, evaluate_trained_model
+from evaluate import evaluate_model
 from data_loader import DataLoader
 from fpt import FPT
 from torch import Tensor
@@ -15,21 +15,21 @@ num_layers = 6
 dropout = 0.1
 
 # TRAINING PARAMETERS
-train_epochs = 15000
-eval_interval = train_epochs * 0.1
+train_epochs = 20000
+eval_interval = 1500
 eval_epochs = 200
-learning_rate = 0.001
+learning_rate = 0.0003
 
 # DATALOADER PARAMETERS
 data_config = DataConfig(
     financial_columns=[
       ColumnConfig(header="revenue", scaling_strategy="log10", 
                    lag_steps=4, include_yoy_prediction=True, is_output=True),
-      ColumnConfig(header="gross_profit", scaling_strategy="log10", 
+      ColumnConfig(header="gross_profit", scaling_strategy="sqrt->mean",
                    lag_steps=4, include_yoy_prediction=True, is_output=True),
-      ColumnConfig(header="op_income", scaling_strategy="log10", 
+      ColumnConfig(header="op_income", scaling_strategy="sqrt->mean",
                    lag_steps=4, include_yoy_prediction=True, is_output=True),
-      ColumnConfig(header="net_income", scaling_strategy="log10", 
+      ColumnConfig(header="net_income", scaling_strategy="sqrt->mean",
                    lag_steps=4, include_yoy_prediction=True, is_output=True),
       ColumnConfig(header="sga_expense", scaling_strategy="log10"),
       ColumnConfig(header="rd_expense", scaling_strategy="log10"),
@@ -68,7 +68,7 @@ data_config = DataConfig(
                    lag_steps=3),
       ColumnConfig(header="personal_consumption", scaling_strategy="log10", 
                    lag_steps=3),
-      ColumnConfig(header="trucking", scaling_strategy="mean", 
+      ColumnConfig(header="trucking", scaling_strategy="log10",
                    lag_steps=3),
     ],
     include_quarter_ended=True,
@@ -111,8 +111,7 @@ def train(
         data_loader: DataLoader,
         lr_step_down_iter: int,
         best_loss: float,
-        save_model: bool,
-        evaluate_against_test_split: bool) -> None:
+        save_model: bool) -> None:
     log_training_metrics(data_loader, model)
 
     for iter in range(train_epochs):
@@ -122,14 +121,9 @@ def train(
             optimizer.param_groups[0]['lr'] = lr
 
         if iter % eval_interval == 0 or iter == train_epochs - 1:
-            eval = evaluate_model(
-                model, data_loader, calculate_loss, eval_epochs, batch_size)
-            train_loss = eval["train"]
-            val_loss = eval["val"]
-            
-            print(f"Epoch #{iter + 1}:")
-            print(f"  Train loss: {train_loss:.6f}")
-            print(f"  Valid loss: {val_loss:.6f}")
+            val_loss = evaluate_model(
+                model, data_loader, calculate_loss, eval_epochs, batch_size, 
+                iter)
 
             if save_model and val_loss < best_loss:
                 best_loss = val_loss
@@ -144,19 +138,17 @@ def train(
         loss.backward()
         optimizer.step()
 
-    if evaluate_against_test_split:
-        evaluate_trained_model(model, data_loader, eval_epochs)
-
 data_loader = DataLoader(data_config, block_size)
 
 model = FPT(
     data_loader.get_num_input_features(), 
     data_loader.get_num_output_features(),
-    block_size, num_heads, num_layers, dropout)
+    block_size, num_heads, num_layers, dropout, 
+    use_static_positional_encoding=True)
 
 # Consistent with https://arxiv.org/pdf/2001.08317.pdf.
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
 train(
     model, optimizer, data_loader, int(train_epochs/2), best_loss=float('inf'), 
-    save_model=False, evaluate_against_test_split=True)
+    save_model=False)
