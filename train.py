@@ -23,6 +23,7 @@ learning_rate = 0.0003
 # DATALOADER PARAMETERS
 data_config = DataConfig(
     financial_columns=[
+      # Income Statement.
       ColumnConfig(header="revenue", scaling_strategy="log10", 
                    lag_steps=4, include_yoy_prediction=True, is_output=True),
       ColumnConfig(header="gross_profit", scaling_strategy="sqrt->mean",
@@ -44,6 +45,7 @@ data_config = DataConfig(
       ColumnConfig(header="disc_ops", scaling_strategy="log10"),
       ColumnConfig(header="extraordinary_items", scaling_strategy="log10"),
       ColumnConfig(header="minority_interest", scaling_strategy="log10"),
+      # Balance Sheet.
       ColumnConfig(header="total_assets", scaling_strategy="log10"),
       ColumnConfig(header="total_liabilities", scaling_strategy="log10"),
       ColumnConfig(header="total_equity", scaling_strategy="log10"),
@@ -53,12 +55,14 @@ data_config = DataConfig(
       ColumnConfig(header="net_ppe", scaling_strategy="log10"),
       ColumnConfig(header="current_liabilities", scaling_strategy="log10"),
       ColumnConfig(header="total_debt", scaling_strategy="log10"),
+      # Cash Flow Statement.
       ColumnConfig(header="cash_from_ops", scaling_strategy="log10"),
       ColumnConfig(header="cash_from_inv", scaling_strategy="log10"),
       ColumnConfig(header="cash_from_fin", scaling_strategy="log10"),
       ColumnConfig(header="capex", scaling_strategy="log10"),
       ColumnConfig(header="debt_issued", scaling_strategy="log10"),
       ColumnConfig(header="debt_repaid", scaling_strategy="log10"),
+      # Trading multiples.
       ColumnConfig(header="tev_ltm_revenue", scaling_strategy="log10"),
     ],
     macro_columns=[
@@ -71,8 +75,8 @@ data_config = DataConfig(
       ColumnConfig(header="trucking", scaling_strategy="log10",
                    lag_steps=3),
     ],
-    include_quarter_ended=True,
-    include_sectors=True,
+    include_quarter_ended = True,
+    include_sectors = True,
     shuffle_data = True,
     split_company_data = True,
     percent_train = 0.7,
@@ -101,7 +105,8 @@ def calculate_loss(
     outputs = outputs.view(B*T, C)
     targets = targets.view(B*T, C)
 
-    # Consistent with https://arxiv.org/pdf/2001.08317.pdf.
+    # Huber loss is less sensitive to outliers (dataset contains outliers).
+    # Also consistent with https://arxiv.org/pdf/2001.08317.pdf.
     loss = F.huber_loss(outputs, targets)
     return loss
 

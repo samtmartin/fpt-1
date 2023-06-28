@@ -67,7 +67,13 @@ The current period metrics used to represent investor sentiment towards the near
 <b>Macro data availability</b><br />
 Public companies seem to report quarterly results ~30 days after the period ends (e.g. the financial data for the period ended December 31st is reported in early February). Monthly FRED (Federal Reserve Bank of St. Louis) economic data seems to be published 1-30 days after the period. As such, for a given fiscal quarter, every month in the quarter has the FRED data for each macro metric in feature set (i.e. for a quarter ended December 31st, there will be macro data for December (and earlier if lag param is set) for each metric in feature set). Note that the csv keys in macro files have 01 in the day position (e.g. 2023-01-01), but it appears that the value may be representative of the end of the month (e.g. 2023-01-31).
 
-## Data Preparation
+## Data structure
+
+The structure of the data varies significantly from having smooth trends and clear periodicity (left) to having few/no discernible patterns or recurring cycles (right) as well as hybrids that have a mix of both. 
+
+![Data Structure](/assets/data_structure.png?raw=true "Data Structure")
+
+## Data preparation
 
 The metrics, particularly the company-specific financial metrics, tend to have long tails (see below). `DataLoader` supports multiple scaling strategies, but replacing features with their log10 value tends to perform best.
 

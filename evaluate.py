@@ -32,8 +32,8 @@ def evaluate_model(
     print(f"Epoch #{iter + 1}:")
     print(f"  Train loss: {train_loss:.6f}")
     print(f"  Valid loss: {val_loss:.6f}")
-    print(f"  % error (model): {model_median_errors}")
-    print(f"  % error (y-o-y): {baseline_median_errors}")
+    print(f"  % error (prediction): {model_median_errors}")
+    print(f"  % error (baseline)  : {baseline_median_errors}")
 
     model.train()
     return val_loss
