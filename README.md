@@ -4,13 +4,13 @@
 
 ## Overview
 
-Financial Projections Transformer 1 is a batch learning, multivariate regression model that predicts future financial performance given historical performance. The model is 'sector agnostic' and therefore is able to accurately predict performance for companies in many different industries. Similar to the GPT class of models, FPT uses the decoder-only transformer architecture (i.e. causal or autoregressive attention).
+Financial Projections Transformer 1 is a batch learning, multivariate regression model that predicts future financial performance given historical performance. The model is 'sector agnostic' and therefore is able to predict performance for companies in many different industries. Similar to the GPT class of models, FPT uses the decoder-only transformer architecture (i.e. causal or autoregressive attention).
 
 The project is designed to be a proof of concept. The concept will be considered 'proven' when the model performs better than the baseline predictions. See the Performance section below for more detail.
 
 ## Data
 
-The dataset used to train the model contains quarterly financial data (only ~5.1k rows) from ~60 companies across 10 business industries. The financial data consists of 33 coarse-grained, general business metrics (i.e. not data such as number of sales reps or revenue backlog). The dataset can also be modified to include up to four high-level macro environment metrics.
+The project currently uses a 'mini' dataset with ~5.1k records, but there is a validated plan to increase the number of records by ~130x. The dataset currently used to train the model contains quarterly financial data from ~60 companies across 10 business industries. The financial data consists of 33 coarse-grained, general business metrics (i.e. not data such as number of sales reps or revenue backlog). The dataset can also be modified to include up to four high-level macro environment metrics.
 
 ### Company-specific
 
@@ -69,7 +69,7 @@ Public companies seem to report quarterly results ~30 days after the period ends
 
 ## Data structure
 
-The structure of the data varies significantly from having smooth trends and clear periodicity (left) to having few/no discernible patterns or recurring cycles (right) as well as hybrids that have a mix of both. 
+The structure of the data varies significantly. In some cases there are clear trends/periodicity (left side below) and in other cases there are few/no discernible patterns (right side below). There are also hybrids that represent a mix of both classes. Unsurprisingly, model performance on the latter class is meaningfully worse.
 
 ![Data Structure](/assets/data_structure.png?raw=true "Data Structure")
 
@@ -99,8 +99,8 @@ The 'proof of concept' mentioned above (i.e. that a transformer model can accura
 
 ## Where does the loss come from?
 
+* Very limited dataset size (solution in progress)
 * Model architecture and related 'inefficiencies'
-* Very limited dataset size
 * No forward-looking, company-specific data (e.g. company guidance, consensus research estimates, etc)
 * Only course-grained company-specific data. More detailed company information (e.g. sku-level metrics) would very likely improve the model's forecasting quality
 * No company-specific 'structural' change signals (e.g. acquisitions, divestitures, etc)
